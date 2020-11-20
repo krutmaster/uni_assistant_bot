@@ -23,7 +23,6 @@ def start(message):
 
 
 def reg_student(id, name):
-    global status_reg
     base = sqlite3.connect('base.db')
     cursor = base.cursor()
 
@@ -34,7 +33,6 @@ def reg_student(id, name):
             group_id = group_id[0][0]
             cursor.execute('insert into students values (?, ?, Null)', (id, group_id,))
             base.commit()
-            del status_reg
             bot.send_message(id, 'Регистрация прошла успешно')
         else:
             bot.send_message(id, 'Я не нашёл такую группу. Проверь, правильно ли ты написал')
@@ -44,7 +42,6 @@ def reg_student(id, name):
         with open('log.txt', 'w') as log_file:
             log_file.write(f'<Error {datetime.now()}\nreg_student\n{id}\n{e}\n/>')
         '''
-
 
 
 @bot.message_handler(commands=["setgroupadmin"])
@@ -68,13 +65,12 @@ def setgroupadmin(message):
 
 @bot.message_handler(content_types=['text'])
 def text(message):
-    global status_reg
     id = str(message.chat.id)
     base = sqlite3.connect('base.db')
     cursor = base.cursor()
 
-    if cursor.execute('select group_id from students where id=?', (id,)).fetchall():
-        group_name = message.text.split().upper()
+    if not cursor.execute('select group_id from students where id=?', (id,)).fetchall():
+        group_name = message.text.upper()
         reg_student(id, group_name)
 
 
