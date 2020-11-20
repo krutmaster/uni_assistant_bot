@@ -14,10 +14,9 @@ col_chars = {
 }
 
 
-def getShedule(group_id):
+def getShedule(group_id, name_group):
     base = sqlite3.connect('base.db')
     cursor = base.cursor()
-    name_group = cursor.execute('select name from groups where id=?', (group_id,)).fetchall()[0][0]
     wks = sh.worksheet_by_title(f'shedule_{name_group}')
 
     if cursor.execute('select lesson from shedule where group_id=?', (group_id,)).fetchall():

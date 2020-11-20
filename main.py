@@ -1,6 +1,7 @@
 import sqlite3
 import telebot
 from datetime import datetime
+from gsheets import getShedule
 
 
 base = sqlite3.connect('base.db')
@@ -23,25 +24,43 @@ def start(message):
 
 
 def reg_student(id, name):
-    base = sqlite3.connect('base.db')
-    cursor = base.cursor()
 
-    try:
-        group_id = cursor.execute('select id from groups where name=?', (name,)).fetchall()
+    if id != admin_id:
+        base = sqlite3.connect('base.db')
+        cursor = base.cursor()
 
-        if group_id:
-            group_id = group_id[0][0]
-            cursor.execute('insert into students values (?, ?, Null)', (id, group_id,))
-            base.commit()
-            bot.send_message(id, 'Регистрация прошла успешно')
-        else:
-            bot.send_message(id, 'Я не нашёл такую группу. Проверь, правильно ли ты написал')
-    except Exception as e:
-        print(e)
-        '''
-        with open('log.txt', 'w') as log_file:
-            log_file.write(f'<Error {datetime.now()}\nreg_student\n{id}\n{e}\n/>')
-        '''
+        try:
+            group_id = cursor.execute('select id from groups where name=?', (name,)).fetchall()
+
+            if group_id:
+                group_id = group_id[0][0]
+                cursor.execute('insert into students values (?, ?, Null)', (id, group_id,))
+                base.commit()
+                bot.send_message(id, 'Регистрация прошла успешно')
+            else:
+                bot.send_message(id, 'Я не нашёл такую группу. Проверь, правильно ли ты написал')
+        except Exception as e:
+            print(e)
+            '''
+            with open('log.txt', 'w') as log_file:
+                log_file.write(f'<Error {datetime.now()}\nreg_student\n{id}\n{e}\n/>')
+            '''
+
+
+@bot.message_handler(commands=["update_shedule"])
+def setgroupadmin(message):
+    id = str(message.chat.id)
+
+    if id == admin_id:
+
+        try:
+            group_name = message.text.split()[1].upper()
+            group_id = cursor.execute('select group_id from groups where name=?', (group_name,)).fetchall()[0][0]
+            getShedule(group_id, group_name)
+            bot.send_message(f'Расписание для групып {group_name} обновленно!')
+        except Exception as e:
+            bot.send_message(id, 'Такой группы не найдено или произошла ошибка')
+            print(e)
 
 
 @bot.message_handler(commands=["setgroupadmin"])
