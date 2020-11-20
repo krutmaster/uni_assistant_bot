@@ -88,11 +88,17 @@ def add_group(message):
     base = sqlite3.connect('base.db')
     cursor = base.cursor()
     id = str(message.chat.id)
+
     if id == admin_id:
-        group_name = "".join(message.text.upper().split()[1:])
-        cursor.execute("insert into groups values name=?", (group_name,))
-        bot.send_message("Группа успешно добавлена!")
-        base.commit()
+
+        try:
+            group_name = "".join(message.text.upper().split()[1:])
+            cursor.execute("insert into groups values (name=?)", (group_name,))
+            bot.send_message("Группа успешно добавлена!")
+            base.commit()
+        except Exception as e:
+            base.rollback()
+            print(e)
 
 
 @bot.message_handler(content_types=['text'])
