@@ -1,6 +1,7 @@
 import sqlite3
 import telebot
 from datetime import datetime
+from gsheets import getShedule
 
 
 base = sqlite3.connect('base.db')
@@ -22,22 +23,12 @@ def start(message):
         ' учебного процесса. Прежде чем начать, давай познакомимся. Напиши свою группу')
 
 
-@bot.message_handler(content_types=['text'])
-def text(message):
-    id = str(message.chat.id)
-    base = sqlite3.connect('base.db')
-    cursor = base.cursor()
-
-    if not cursor.execute('select group_id from students where id=?', (id,)).fetchall():
-        group_name = message.text.upper()
-        reg_student(id, group_name)
-
-
 def reg_student(id, name):
-    global admin_id
-    base = sqlite3.connect('base.db')
-    cursor = base.cursor()
+
     if id != admin_id:
+        base = sqlite3.connect('base.db')
+        cursor = base.cursor()
+
         try:
             group_id = cursor.execute('select id from groups where name=?', (name,)).fetchall()
 
@@ -54,6 +45,22 @@ def reg_student(id, name):
             with open('log.txt', 'w') as log_file:
                 log_file.write(f'<Error {datetime.now()}\nreg_student\n{id}\n{e}\n/>')
             '''
+
+
+@bot.message_handler(commands=["update_shedule"])
+def setgroupadmin(message):
+    id = str(message.chat.id)
+
+    if id == admin_id:
+
+        try:
+            group_name = message.text.split()[1].upper()
+            group_id = cursor.execute('select group_id from groups where name=?', (group_name,)).fetchall()[0][0]
+            getShedule(group_id, group_name)
+            bot.send_message(f'Расписание для групып {group_name} обновленно!')
+        except Exception as e:
+            bot.send_message(id, 'Такой группы не найдено или произошла ошибка')
+            print(e)
 
 
 @bot.message_handler(commands=["setgroupadmin"])
@@ -88,6 +95,15 @@ def add_group(message):
         base.commit()
 
 
+@bot.message_handler(content_types=['text'])
+def text(message):
+    id = str(message.chat.id)
+    base = sqlite3.connect('base.db')
+    cursor = base.cursor()
+
+    if not cursor.execute('select group_id from students where id=?', (id,)).fetchall():
+        group_name = message.text.upper()
+        reg_student(id, group_name)
 
 
 if __name__ == '__main__':
