@@ -93,9 +93,9 @@ def add_group(message):
 
         try:
             group_name = "".join(message.text.upper().split()[1:])
-            cursor.execute("insert into groups values (name=?)", (group_name,))
-            bot.send_message("Группа успешно добавлена!")
+            cursor.execute("insert into groups (name) values (?)", (group_name,))
             base.commit()
+            bot.send_message(id, "Группа успешно добавлена!")
         except Exception as e:
             base.rollback()
             print(e)
