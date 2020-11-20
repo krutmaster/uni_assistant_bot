@@ -1,6 +1,6 @@
 import sqlite3
 import telebot
-from datetime import datetime
+from datetime import datetime, date
 from gsheets import getShedule
 
 
@@ -45,6 +45,13 @@ def reg_student(id, name):
             with open('log.txt', 'w') as log_file:
                 log_file.write(f'<Error {datetime.now()}\nreg_student\n{id}\n{e}\n/>')
             '''
+
+
+def evenWeek():
+    if int(date.today().strftime("%j")) > int(date(2020, 9, 1).strftime("%j")):
+        return abs(int(date.today().strftime("%j")) - int(date(2020, 9, 1).strftime("%j"))) // 7 + 1
+    else:
+        return abs(365 + int(date.today().strftime("%j")) - int(date(2020, 9, 1).strftime("%j"))) // 7 + 1
 
 
 @bot.message_handler(commands=["update_shedule"])
