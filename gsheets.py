@@ -22,16 +22,7 @@ def getShedule(group_id):
 
     if cursor.execute('select lesson from shedule where group_id=?', (group_id,)).fetchall():
         cursor.execute('delete from shedule where group_id=?', (group_id,))
-    '''
-    cells = wks.get_col(2, returnas='cell')
-            edge = 'B'
 
-        for cell in cells:
-            order_ = cell.value
-
-            if order_ == str(order):
-                return str(cell.address).split(edge)[1].split('>')[0]
-    '''
     for i in range(6):
         col = i + 2
         cells = wks.get_col(col, returnas='cell')[1:]
