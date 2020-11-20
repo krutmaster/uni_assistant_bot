@@ -1,5 +1,3 @@
 telebot
-pytelegrambotapi
+pytelegrambotapi==2.2.3
 pygsheets
-
-а могу ли я коммитить?
