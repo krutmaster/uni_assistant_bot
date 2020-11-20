@@ -36,3 +36,7 @@ def setgroupadmin(message):
     except:
         base.rollback()
         bot.send_message(id, 'Команда введена неправильно, попробуйте ещё раз.')
+
+
+if __name__ == '__main__':
+    bot.polling(none_stop=True)
