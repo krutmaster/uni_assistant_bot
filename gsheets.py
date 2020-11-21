@@ -36,41 +36,41 @@ def getShedule(group_id, name_group):
                     lesson = 1
 
                     if j == 2:
-                        is_even = 0
-                    else:
                         is_even = 1
+                    else:
+                        is_even = 0
 
                 elif j == 6 or j == 8:
                     lesson = 2
 
                     if j == 6:
-                        is_even = 0
-                    else:
                         is_even = 1
+                    else:
+                        is_even = 0
 
                 elif j == 10 or j == 12:
                     lesson = 3
 
                     if j == 10:
-                        is_even = 0
-                    else:
                         is_even = 1
+                    else:
+                        is_even = 0
 
                 elif j == 14 or j == 16:
                     lesson = 4
 
                     if j == 14:
-                        is_even = 0
-                    else:
                         is_even = 1
+                    else:
+                        is_even = 0
 
                 else:
                     lesson = 5
 
                     if j == 18:
-                        is_even = 0
-                    else:
                         is_even = 1
+                    else:
+                        is_even = 0
 
                 name = cell.value
             else:
