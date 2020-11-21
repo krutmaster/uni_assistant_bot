@@ -138,7 +138,7 @@ def set_notif_deadline(id):
     cursor = base.cursor()
 
     try:
-        notif_deadline = cursor.execute('select notif_deadline from students where id=?', (id,)).fetchall()
+        notif_deadline = cursor.execute('select notif_deadline from students where id=?', (id,)).fetchall()[0][0]
         buttons = [
             {'1': 'set_notif_deadline 1'},
             {'2': 'set_notif_deadline 2'},
@@ -150,7 +150,7 @@ def set_notif_deadline(id):
         ]
         kb_menu = keyboa_maker(items=buttons)
 
-        if notif_deadline is not None:
+        if notif_deadline:
             bot.send_message(id, f'Бот напомнит о сроках сдачи задания за {notif_deadline[0][0]} '
                                  f'дней до крайнего срока.\nЕсли хотите изменить, то выберите новое значение',
                              reply_markup=kb_menu)
