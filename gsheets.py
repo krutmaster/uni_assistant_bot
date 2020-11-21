@@ -12,6 +12,18 @@ col_chars = {
     4: 'F',
     5: 'G'
 }
+name_col = {
+    2: '1 нечётная',
+    4: '1 чётная',
+    6: '2 нечётная',
+    8: '2 чётная',
+    10: '3 нечётная',
+    12: '3 чётная',
+    14: '4 нечётная',
+    16: '4 чётная',
+    18: '5 нечётная',
+    20: '5 чётная'
+}
 
 
 def getShedule(group_id, name_group):
@@ -79,3 +91,15 @@ def getShedule(group_id, name_group):
                                (lesson, week_day, name, link, is_even, group_id,))
 
     base.commit()
+
+
+def createSheet(group_name):
+    wks = sh.add_worksheet(f'shedule_{group_name}', rows=21, cols=7)
+    wks.update_values('A1:G1', [['Пара', 'Понедельник', 'Вторник', 'Четверг', 'Пятница', 'Суббота']])
+
+    for row in range(2, 22):
+
+        if row % 2 == 0:
+            wks.update_value(f'A{row}', name_col[row])
+        else:
+            wks.update_value(f'A{row}', 'Ссылка на пару')
