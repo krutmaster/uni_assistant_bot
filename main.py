@@ -305,8 +305,13 @@ def deadline_calendar(id):
     year = date.today().strftime("%Y")
     month = date.today().strftime("%m")
     day_count = calendar.Calendar().monthdays2calendar(int(year), int(month))
-    db_date = cursor.execute("select deadline from tasks").fetchall()[0][0].split("-")
-    db_month, db_day = db_date[1], db_date[2]
+    group_id = cursor.execute("select group_id from students where id=?", (id,)).fetchall()[0][0]
+    tasks_id = cursor.execute("select task_id from task_group where group_id=?", (group_id,)).fetchall()
+    dd_dates = []
+    for i in tasks_id:
+        db_date = cursor.execute("select deadline from tasks where task_id=?", (i[0],)).fetchall()[0][0]
+        if db_date[5:] not in dd_dates:
+            dd_dates.append(db_date[5:])
     buttons = []
     for i in range(len(day_count)):
         buttons.append([])
@@ -314,13 +319,15 @@ def deadline_calendar(id):
             if day_count[i][j][0] == 0:
                 buttons[i].append({" ": "EmptyBtn"})
             else:
-                if month == db_month and day_count[i][j][0] == int(db_day):
+                tempdate = f"{month}-{day_count[i][j][0]}"
+                if tempdate in dd_dates:
                     if len(str(day_count[i][j][0])) == 1:
                         buttons[i].append({str(day_count[i][j][0]) + smile_skull: f"DeadBtn0{day_count[i][j][0]}"})
                     else:
                         buttons[i].append({str(day_count[i][j][0]) + smile_skull: f"DeadBtn{day_count[i][j][0]}"})
                 else:
                     buttons[i].append({str(day_count[i][j][0]): f"CalBtn{day_count[i][j][0]}"})
+    print(buttons)
     menu_button = [{"Вернуться в меню": "menu"}]
     kb_calendar = keyboa_maker(items=buttons)
     kb_menu = keyboa_maker(items=menu_button)
