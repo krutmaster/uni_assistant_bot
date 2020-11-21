@@ -2,7 +2,7 @@ import sqlite3
 import telebot
 from keyboa import keyboa_maker
 from datetime import datetime, date, timedelta
-from gsheets import getShedule
+from gsheets import getShedule, createSheet
 from time import sleep
 from threading import Thread
 
@@ -234,7 +234,10 @@ def add_group(message):
             group_name = "".join(message.text.upper().split()[1:])
             cursor.execute("insert into groups (name) values (?)", (group_name,))
             base.commit()
-            bot.send_message(id, "Группа успешно добавлена!")
+            createSheet(group_name)
+            bot.send_message(id, 'Группа успешно добавлена!\nСоздана страница в таблице бота, '
+                                 'используйте её для редактирования расписания группы. После '
+                                 'заполнения расписания используйте команду "/update_shedule ГРУППА1"')
         except Exception as e:
             base.rollback()
             ErrorLog(e)
