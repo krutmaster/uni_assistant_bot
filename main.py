@@ -179,11 +179,11 @@ def add_task(message):
     cursor = base.cursor()
     id = str(message.chat.id)
     if id == admin_id:
-        task_text = " ".join(message.text().split()[1:])
-        cursor.execute("insert into tasks task values ?", (task_text,))
+        task_text = " ".join(message.text.split()[1:])
+        cursor.execute("insert into tasks (task) values (?)", (task_text,))
         base.commit()
         task_id = cursor.execute("select task_id from tasks where task=?", (task_text,)).fetchall()[0][0]
-        bot.send_message(f"Вы добавляете новое задание: \"{task_text}\"\nТеперь перечислите группы, которым необходимо выполнить задание в формате \n\"{task_id} группа 1, группа 2,...\"")
+        bot.send_message(id, f"Вы добавляете новое задание: \"{task_text}\"\nТеперь перечислите группы, которым необходимо выполнить задание в формате \n\"{task_id} группа 1, группа 2,...\"")
 
 
 def shedule(id):
@@ -252,31 +252,36 @@ def text(message):
     id = str(message.chat.id)
     base = sqlite3.connect('base.db')
     cursor = base.cursor()
-
+    task_id = int(message.text.split()[0])
+    print(task_id)
     if not cursor.execute('select group_id from students where id=?', (id,)).fetchall():
         group_name = message.text.upper()
         reg_student(id, group_name)
-    elif not cursor.execute("select task_id from task_group where task_id=?", (message.text()[0],)).fetchall():
-        task_id = message.text()[0]
-        groups = message.text()[2:].upper().split(",")
+
+    if not cursor.execute("select task_id from task_group where task_id=?", (task_id,)).fetchall():
+        # task_id = message.text.split()[0]
+        groups = "".join(message.text.upper().split()[1:]).split(",")
         added_groups = []
         for i in range(len(groups)):
             groups[i] = "".join(groups[i].split())
         for i in range(len(groups)):
             try:
                 if cursor.execute("select id from groups where name=?", (groups[i],)).fetchall():
-                    group_id = cursor.execute("select id from groups where name=?", (groups[i],))[0][0]
-                    cursor.execute("insert into task_group values (?, ?)", (task_id, group_id,))
+                    group_id = cursor.execute("select id from groups where name=?", (groups[i],)).fetchall()
+                    cursor.execute("insert into task_group values (?, ?)", (task_id, group_id[0][0],))
                     base.commit()
                     added_groups.append(groups[i])
             except Exception as e:
                 base.rollback()
                 ErrorLog(e)
-        bot.send_message("К заданию были добавлены группы: {}\nТеперь введите крайний срок сдачи задания в фомате \"{} ГГГГ-ММ-ДД\"".format("\n".join(added_groups), task_id))
-    elif not cursor.execute("select deadline from tasks where task_id=?", (message.text()[0],)).fetchall():
+        bot.send_message(id, "К заданию были добавлены группы:\n{}\nТеперь введите крайний срок сдачи задания в фомате \n\"{} ГГГГ-ММ-ДД\"".format("\n".join(added_groups), task_id))
+    if cursor.execute("select deadline from tasks where task_id=?", (task_id,)).fetchall()[0][0] is None:
         try:
-            cursor.execute("update tasks set deadline=?", (message.text())[1:])
+            deadline_date = message.text.split()[1:]
+            task_id = message.text.split()[0]
+            cursor.execute("update tasks set deadline=? where task_id=?", (deadline_date, task_id,))
             base.commit()
+            bot.send_message(id, "Задача успешно добавлена!")
         except Exception as e:
             base.rollback()
             ErrorLog(e)
