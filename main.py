@@ -1,5 +1,6 @@
 import sqlite3
 import telebot
+from keyboa import keyboa_maker
 from datetime import datetime, date
 from gsheets import getShedule
 
@@ -11,6 +12,14 @@ admin_id = cursor.execute('select admin_id from Settings').fetchall()
 if admin_id:
     admin_id = admin_id[0][0]
 bot = telebot.TeleBot(token)
+
+
+def ErrorLog(exc):
+    print(exc)
+    '''
+    with open('log.txt', 'w') as log_file:
+        log_file.write(f'<Error {datetime.now()}\nreg_student\n{id}\n{e}\n/>')
+    '''
 
 
 @bot.message_handler(commands=["start"])
@@ -37,21 +46,32 @@ def reg_student(id, name):
                 cursor.execute('insert into students values (?, ?, Null)', (id, group_id,))
                 base.commit()
                 bot.send_message(id, 'Регистрация прошла успешно')
+                menu(id)
             else:
                 bot.send_message(id, 'Я не нашёл такую группу. Проверь, правильно ли ты написал')
         except Exception as e:
-            print(e)
-            '''
-            with open('log.txt', 'w') as log_file:
-                log_file.write(f'<Error {datetime.now()}\nreg_student\n{id}\n{e}\n/>')
-            '''
+            ErrorLog(e)
 
 
 def evenWeek():
     if int(date.today().strftime("%j")) > int(date(2020, 9, 1).strftime("%j")):
-        return abs(int(date.today().strftime("%j")) - int(date(2020, 9, 1).strftime("%j"))) // 7 + 1
+        return (abs(int(date.today().strftime("%j")) - int(date(2020, 9, 1).strftime("%j"))) // 7 + 1) % 2
     else:
-        return abs(365 + int(date.today().strftime("%j")) - int(date(2020, 9, 1).strftime("%j"))) // 7 + 1
+        return (abs(365 + int(date.today().strftime("%j")) - int(date(2020, 9, 1).strftime("%j"))) // 7 + 1) % 2
+
+
+def menu(id):
+    buttons = [
+        [{"Мое расписание": "schedule"},
+        {"Мои задачи": "tasks"}],
+        {"Настройки уведомлений о дедлайнах": "notif_set"},
+        {"Календарь дедлайнов": "deadlines"}]
+    kb_menu = keyboa_maker(items=buttons)
+    base = sqlite3.connect('base.db')
+    cursor = base.cursor()
+    group_id = cursor.execute("select group_id from students where id=?", (id,)).fetchall()
+    group_name = cursor.execute("select name from groups where id=?", (group_id[0][0],)).fetchall()
+    bot.send_message(chat_id=id, reply_markup=kb_menu, text=f"Ты принадлежишь к группе {group_name[0][0]}\nВыбери один из пунктов меню *пункты_меню_нейм* (потом напишу)")
 
 
 @bot.message_handler(commands=["update_shedule"])
@@ -67,7 +87,7 @@ def setgroupadmin(message):
             bot.send_message(f'Расписание для групып {group_name} обновленно!')
         except Exception as e:
             bot.send_message(id, 'Такой группы не найдено или произошла ошибка')
-            print(e)
+            ErrorLog(e)
 
 
 @bot.message_handler(commands=["setgroupadmin"])
@@ -106,6 +126,52 @@ def add_group(message):
         except Exception as e:
             base.rollback()
             print(e)
+
+
+@bot.message_handler(commands=["change_group"])
+def change_group(message):
+    global admin_id
+    id = str(message.chat.id)
+    if id != admin_id:
+        buttons = [[{"Да": "changeTrue"}, {"Нет": "changeFalse"}]]
+        kb_menu = keyboa_maker(items=buttons)
+        bot.send_message(chat_id=id, reply_markup=kb_menu, text="Ты уверен, что хочешь изменить группу?")
+
+
+@bot.callback_query_handler(func=lambda x: True)
+def buttons(call):
+    id = str(call.from_user.id)
+    base = sqlite3.connect('base.db')
+    cursor = base.cursor()
+    if call.data == "schedule":
+        weekday = datetime.today().isoweekday()
+        isEven = evenWeek()
+        try:
+            if weekday == 7:
+                bot.send_message(id, "Сегодня воскресенье, не парься, просто отдыхай :)")
+            else:
+                group_id = cursor.execute("select group_id from students where id=?", (id,)).fetchall()
+                lessons = cursor.execute("select name from shedule where week_day=? and is_even=? and group_id=?", (weekday, isEven, group_id[0][0],)).fetchall()
+                schedule = ""
+                for i in range(len(lessons)):
+                    if lessons[i][0] == "":
+                        continue
+                    else:
+                        schedule += f"{i + 1} пара: {lessons[i][0]}\n"
+                bot.send_message(id, "Твое расписание на сегодня:\n" + schedule)
+                menu(id)
+        except Exception as e:
+            ErrorLog(e)
+    if call.data == "changeTrue":
+        try:
+            cursor.execute("delete from students where id=?", (id,))
+            base.commit()
+            bot.send_message(id, "Я удалил тебя из базы данных. Теперь еще раз напиши свою группу, чтобы я смог тебя зарегистрировать")
+        except Exception as e:
+            base.rollback()
+            ErrorLog(e)
+    elif call.data == "changeFalse":
+        menu(id)
 
 
 @bot.message_handler(content_types=['text'])
