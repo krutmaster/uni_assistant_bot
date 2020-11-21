@@ -1,10 +1,11 @@
 import sqlite3
 import telebot
-from keyboa import keyboa_maker
+from keyboa import keyboa_maker, keyboa_combiner
 from datetime import datetime, date, timedelta
 from gsheets import getShedule
 from time import sleep
 from threading import Thread
+import calendar
 
 
 base = sqlite3.connect('base.db')
@@ -48,7 +49,7 @@ def reg_student(id, name):
                 cursor.execute('insert into students values (?, ?, Null)', (id, group_id,))
                 base.commit()
                 bot.send_message(id, 'Регистрация прошла успешно')
-                menu(id)
+                menu(id=id)
             else:
                 bot.send_message(id, 'Я не нашёл такую группу. Проверь, правильно ли ты написал')
 
@@ -295,6 +296,40 @@ def shedule(id):
         ErrorLog(e)
 
 
+def deadline_calendar(id):
+    base = sqlite3.connect('base.db')
+    cursor = base.cursor()
+    smile_skull = u'\U0001F480'
+    year = date.today().strftime("%Y")
+    month = date.today().strftime("%m")
+    day_count = calendar.Calendar().monthdays2calendar(int(year), int(month))
+    db_date = cursor.execute("select deadline from tasks").fetchall()[0][0].split("-")
+    db_month, db_day = db_date[1], db_date[2]
+    buttons = []
+    for i in range(len(day_count)):
+        buttons.append([])
+        for j in range(len(day_count[i])):
+            if day_count[i][j][0] == 0:
+                buttons[i].append({" ": "EmptyBtn"})
+            else:
+                if month == db_month and day_count[i][j][0] == int(db_day):
+                    if len(str(day_count[i][j][0])) == 1:
+                        buttons[i].append({str(day_count[i][j][0]) + smile_skull: f"DeadBtn0{day_count[i][j][0]}"})
+                    else:
+                        buttons[i].append({str(day_count[i][j][0]) + smile_skull: f"DeadBtn{day_count[i][j][0]}"})
+                else:
+                    buttons[i].append({str(day_count[i][j][0]): f"CalBtn{day_count[i][j][0]}"})
+    menu_button = [{"Вернуться в меню": "menu"}]
+    kb_calendar = keyboa_maker(items=buttons)
+    kb_menu = keyboa_maker(items=menu_button)
+    kb = keyboa_combiner(keyboards=(kb_calendar, kb_menu))
+    bot.send_message(chat_id=id, text="Календарь дедлайнов", reply_markup=kb)
+
+
+
+
+
+
 @bot.callback_query_handler(func=lambda x: True)
 def buttons(call):
     id = str(call.from_user.id)
@@ -327,6 +362,25 @@ def buttons(call):
         except Exception as e:
             base.rollback()
             ErrorLog(e)
+    elif call.data == "deadlines":
+        deadline_calendar(id)
+    elif call.data.startswith("CalBtn"):
+        bot.send_message(id, "На этот день нет никаких задач.")
+        deadline_calendar(id)
+    elif call.data.startswith("DeadBtn"):
+        stud_info = cursor.execute("select group_id from students where id=?", (id,)).fetchall()[0][0]
+        task_id = cursor.execute("select task_id from task_group where group_id=?", (stud_info,)).fetchall()
+        task_id = [task_id[x][0] for x in range(len(task_id))]
+        deadline_date = f'{datetime.today().strftime("%Y-%m")}-{call.data[7:]}'
+        tasks = []
+        for i in task_id:
+            task = cursor.execute("select task from tasks where task_id=? and deadline=?", (str(i), deadline_date,)).fetchall()[0][0]
+            tasks.append(task)
+        tasks = '\n'.join(tasks)
+        bot.send_message(id, f"Ваши задачи на {call.data[7:]}.{datetime.today().strftime('%m.%Y')}:\n{tasks}")
+        deadline_calendar(id)
+    elif call.data == "menu":
+        menu(id=id)
 
 
 @bot.message_handler(content_types=['text'])
