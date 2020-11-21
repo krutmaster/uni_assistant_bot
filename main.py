@@ -4,6 +4,7 @@ from keyboa import keyboa_maker
 from datetime import datetime, date, timedelta
 from gsheets import getShedule
 from time import sleep
+from threading import Thread
 
 
 base = sqlite3.connect('base.db')
@@ -374,4 +375,6 @@ def text(message):
 
 
 if __name__ == '__main__':
+    synchronization_thread = Thread(target=synchronization)
+    synchronization_thread.start()
     bot.polling(none_stop=True)
