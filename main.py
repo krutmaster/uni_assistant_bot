@@ -144,6 +144,33 @@ def change_group(message):
         bot.send_message(chat_id=id, reply_markup=kb_menu, text="Ты уверен, что хочешь изменить группу?")
 
 
+def shedule(id):
+    base = sqlite3.connect('base.db')
+    cursor = base.cursor()
+    weekday = datetime.today().isoweekday()
+    isEven = evenWeek()
+
+    try:
+
+        if weekday == 7:
+            bot.send_message(id, "Сегодня воскресенье, не парься, просто отдыхай :)")
+        else:
+            group_id = cursor.execute("select group_id from students where id=?", (id,)).fetchall()[0][0]
+            lessons = cursor.execute("select name from shedule where week_day=? and is_even=? and group_id=?",
+                                     (weekday, isEven, group_id,)).fetchall()
+            schedule = ""
+
+            for i, lesson in enumerate(lessons):
+
+                if lesson[0] != "":
+                    schedule += f"{i + 1} пара: {lesson[0]}\n"
+
+            bot.send_message(id, "Твое расписание на сегодня:\n" + schedule)
+            menu(id)
+    except Exception as e:
+        ErrorLog(e)
+
+
 @bot.callback_query_handler(func=lambda x: True)
 def buttons(call):
     id = str(call.from_user.id)
@@ -151,29 +178,8 @@ def buttons(call):
     cursor = base.cursor()
 
     if call.data == "schedule":
-        weekday = datetime.today().isoweekday()
-        isEven = evenWeek()
-
-        try:
-
-            if weekday == 7:
-                bot.send_message(id, "Сегодня воскресенье, не парься, просто отдыхай :)")
-            else:
-                group_id = cursor.execute("select group_id from students where id=?", (id,)).fetchall()[0][0]
-                lessons = cursor.execute("select name from shedule where week_day=? and is_even=? and group_id=?", (weekday, isEven, group_id,)).fetchall()
-                schedule = ""
-
-                for i, lesson in enumerate(lessons):
-
-                    if lesson[0] != "":
-                        schedule += f"{i + 1} пара: {lesson[0]}\n"
-
-                bot.send_message(id, "Твое расписание на сегодня:\n" + schedule)
-                menu(id)
-        except Exception as e:
-            ErrorLog(e)
-
-    if call.data == "changeTrue":
+        shedule(id)
+    elif call.data == "changeTrue":
 
         try:
             cursor.execute("delete from students where id=?", (id,))
