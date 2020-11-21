@@ -264,6 +264,8 @@ def add_task(message):
 
     if id == admin_id:
         task_text = " ".join(message.text.split()[1:])
+        if task_text == "":
+            task_text = "[Текст не указан]"
         cursor.execute("insert into tasks (task) values (?)", (task_text,))
         base.commit()
         task_id = cursor.execute("select max(task_id) from tasks").fetchall()[0][0]
@@ -384,9 +386,12 @@ def buttons(call):
         task_id = [task_id[x][0] for x in range(len(task_id))]
         deadline_date = f'{datetime.today().strftime("%Y-%m")}-{call.data[7:]}'
         tasks = []
+        print(task_id)
         for i in task_id:
-            task = cursor.execute("select task from tasks where task_id=? and deadline=?", (str(i), deadline_date,)).fetchall()[0][0]
-            tasks.append(task)
+            task = cursor.execute("select task from tasks where task_id=? and deadline=?", (int(i), deadline_date,)).fetchall()
+            if task:
+                print(task, i)
+                tasks.append(task[0][0])
         tasks = '\n'.join(tasks)
         bot.send_message(id, f"Ваши задачи на {call.data[7:]}.{datetime.today().strftime('%m.%Y')}:\n{tasks}")
         deadline_calendar(id)
