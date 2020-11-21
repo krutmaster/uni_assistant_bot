@@ -1,8 +1,9 @@
 import sqlite3
 import telebot
 from keyboa import keyboa_maker
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from gsheets import getShedule
+from time import sleep
 
 
 base = sqlite3.connect('base.db')
@@ -58,6 +59,73 @@ def evenWeek():
         return (abs(int(date.today().strftime("%j")) - int(date(2020, 9, 1).strftime("%j"))) // 7 + 1) % 2
     else:
         return (abs(365 + int(date.today().strftime("%j")) - int(date(2020, 9, 1).strftime("%j"))) // 7 + 1) % 2
+
+
+def send_notifications(notif_deadline):
+    base = sqlite3.connect('base.db')
+    cursor = base.cursor()
+
+    try:
+        smile_fire = u'\U0001F525'
+        date = datetime.now().date()
+        deadline = str(date + timedelta(days=notif_deadline))
+        tasks = cursor.execute('select task_id from tasks where deadline=?', (deadline,)).fetchall()
+
+        for task in tasks:
+            task = task[0]
+            groups = cursor.execute('select group_id from task_group where task_id=?', (task,)).fetchall()
+
+            for group in groups:
+                group = group[0]
+                students = cursor.execute('select id from students where group_id=? and notif_deadline=?', (group, notif_deadline,)).fetchall()
+
+                for student in students:
+                    student = student[0]
+                    task_name = cursor.execute('select task from tasks where task_id=?', (task,)).fetchall()[0][0]
+                    bot.send_message(f'{smile_fire}{smile_fire}{smile_fire} ВНИМАНИЕ!!! {smile_fire}{smile_fire}{smile_fire}\n\n'
+                                     f'Крайний срок сдачи задания "{task_name}" {deadline}.\nЕсли захочешь изменить настройки напоминания, открой их '
+                                     f'в /menu"')
+
+    except Exception as e:
+        ErrorLog(e)
+
+
+def del_task():
+    base = sqlite3.connect('base.db')
+    cursor = base.cursor()
+    date = datetime.now().date()
+
+    try:
+        tasks = cursor.execute('delete tasks where deadline=?', (date,))
+        base.commit()
+    except Exception as e:
+        base.rollback()
+        ErrorLog(e)
+
+
+
+def synchronization():
+
+    try:
+
+        while True:
+            hours = datetime.now().hour
+
+            if hours == 10:
+                del_task()
+
+                for i in range(7):
+                    send_notifications(7 - i)
+
+            elif hours > 10:
+                minutes = datetime.now().minute
+                sleep((24 - hours + 9) * 3600 + (60 - minutes) * 60)
+            else:
+                minutes = datetime.now().minute
+                sleep((9 - hours) * 3600 + (60 - minutes) * 60)
+
+    except Exception as e:
+        ErrorLog(e)
 
 
 def set_notif_deadline(id):
