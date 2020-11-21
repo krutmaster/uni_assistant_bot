@@ -30,8 +30,8 @@ def start(message):
     id = str(message.chat.id)
 
     if id != admin_id:
-        bot.send_message(id, 'Привет!\n Я бот-ассистент для студентов вузов, призванный для упрощения учебного '
-                             'процесса.\n Прежде чем начать, давай познакомимся! Напиши мне свою группу')
+        bot.send_message(id, 'Привет!\nЯ бот-ассистент Юня для студентов вузов, призванный для упрощения учебного '
+                             'процесса.\nПрежде чем начать, давай познакомимся! Напиши мне свою группу')
 
 
 def reg_student(id, name):
@@ -156,19 +156,19 @@ def set_notif_deadline(id):
 
         if notif_deadline:
             if notif_deadline == 1:
-                bot.send_message(id, f'Бот напомнит о сроках сдачи задания за {notif_deadline} '
+                bot.send_message(id, f'Я напомню о сроках сдачи задания за {notif_deadline} '
                                      f'день до крайнего срока.\nЕсли хочешь изменить, то выбери новое значение',
                                  reply_markup=kb_menu)
             elif notif_deadline in [2, 3, 4]:
-                bot.send_message(id, f'Бот напомнит о сроках сдачи задания за {notif_deadline} '
+                bot.send_message(id, f'Я напомню о сроках сдачи задания за {notif_deadline} '
                                      f'дня до крайнего срока.\nЕсли хочешь изменить, то выбери новое значение',
                                  reply_markup=kb_menu)
             else:
-                bot.send_message(id, f'Бот напомнит о сроках сдачи задания за {notif_deadline} '
+                bot.send_message(id, f'Я напомню о сроках сдачи задания за {notif_deadline} '
                                      f'дней до крайнего срока.\nЕсли хочешь изменить, то выбери новое значение',
                                  reply_markup=kb_menu)
         else:
-            bot.send_message(id, 'Выбери, за сколько дней боту напоминать о приближении срока сдачи задания?',
+            bot.send_message(id, 'Выбери, за сколько дней мне напоминать о приближении срока сдачи задания?',
                              reply_markup=kb_menu)
     except Exception as e:
         ErrorLog(e)
@@ -371,6 +371,7 @@ def buttons(call):
     cursor = base.cursor()
     clipboard_smile = u"\U0001F4CB"
     checkmark = u"\U00002705"
+    smile = u"\U0001F60A"
 
     if call.data == "schedule":
         shedule(id)
@@ -403,7 +404,7 @@ def buttons(call):
     elif call.data == "deadlines":
         deadline_calendar(id)
     elif call.data.startswith("CalBtn"):
-        bot.send_message(id, "На этот день нет никаких задач.")
+        bot.send_message(id, f"На этот день нет никаких задач {smile}")
         deadline_calendar(id)
     elif call.data.startswith("DeadBtn"):
         stud_info = cursor.execute("select group_id from students where id=?", (id,)).fetchall()[0][0]
@@ -417,7 +418,7 @@ def buttons(call):
                                   "and deadline=?", (int(i), deadline_date,)).fetchall()
             if task:
                 print(task, i)
-                tasks.append(task[0][0])
+                tasks.append("• " + task[0][0])
         tasks = '\n'.join(tasks)
         bot.send_message(id, f"{clipboard_smile} Твои задачи на "
                              f"{call.data[7:]}.{datetime.today().strftime('%m.%Y')}:\n{tasks}")
