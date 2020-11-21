@@ -61,21 +61,25 @@ def evenWeek():
 
 
 def menu(id):
-    buttons = [
-        [{"Мое расписание": "schedule"},
-        {"Мои задачи": "tasks"}],
-        {"Настройки уведомлений о дедлайнах": "notif_set"},
-        {"Календарь дедлайнов": "deadlines"}]
-    kb_menu = keyboa_maker(items=buttons)
     base = sqlite3.connect('base.db')
     cursor = base.cursor()
-    group_id = cursor.execute("select group_id from students where id=?", (id,)).fetchall()
-    group_name = cursor.execute("select name from groups where id=?", (group_id[0][0],)).fetchall()
-    bot.send_message(chat_id=id, reply_markup=kb_menu, text=f"Ты принадлежишь к группе {group_name[0][0]}\nВыбери один из пунктов меню *пункты_меню_нейм* (потом напишу)")
+
+    try:
+        buttons = [
+            [{"Мое расписание": "schedule"},
+            {"Мои задачи": "tasks"}],
+            {"Настройки уведомлений о дедлайнах": "notif_set"},
+            {"Календарь дедлайнов": "deadlines"}]
+        kb_menu = keyboa_maker(items=buttons)
+        group_id = cursor.execute("select group_id from students where id=?", (id,)).fetchall()[0][0]
+        group_name = cursor.execute("select name from groups where id=?", (group_id,)).fetchall()[0][0]
+        bot.send_message(chat_id=id, reply_markup=kb_menu, text=f"Ты принадлежишь к группе {group_name}\nВыбери один из пунктов меню")
+    except Exception as e:
+        ErrorLog(e)
 
 
 @bot.message_handler(commands=["update_shedule"])
-def setgroupadmin(message):
+def update_shedule(message):
     id = str(message.chat.id)
 
     if id == admin_id:
@@ -125,13 +129,14 @@ def add_group(message):
             bot.send_message(id, "Группа успешно добавлена!")
         except Exception as e:
             base.rollback()
-            print(e)
+            ErrorLog(e)
 
 
 @bot.message_handler(commands=["change_group"])
 def change_group(message):
     global admin_id
     id = str(message.chat.id)
+
     if id != admin_id:
         buttons = [[{"Да": "changeTrue"}, {"Нет": "changeFalse"}]]
         kb_menu = keyboa_maker(items=buttons)
@@ -143,26 +148,32 @@ def buttons(call):
     id = str(call.from_user.id)
     base = sqlite3.connect('base.db')
     cursor = base.cursor()
+
     if call.data == "schedule":
         weekday = datetime.today().isoweekday()
         isEven = evenWeek()
+
         try:
+
             if weekday == 7:
                 bot.send_message(id, "Сегодня воскресенье, не парься, просто отдыхай :)")
             else:
-                group_id = cursor.execute("select group_id from students where id=?", (id,)).fetchall()
-                lessons = cursor.execute("select name from shedule where week_day=? and is_even=? and group_id=?", (weekday, isEven, group_id[0][0],)).fetchall()
+                group_id = cursor.execute("select group_id from students where id=?", (id,)).fetchall()[0][0]
+                lessons = cursor.execute("select name from shedule where week_day=? and is_even=? and group_id=?", (weekday, isEven, group_id,)).fetchall()
                 schedule = ""
-                for i in range(len(lessons)):
-                    if lessons[i][0] == "":
-                        continue
-                    else:
-                        schedule += f"{i + 1} пара: {lessons[i][0]}\n"
+
+                for i, lesson in enumerate(lessons):
+
+                    if lesson[0] != "":
+                        schedule += f"{i + 1} пара: {lesson[0]}\n"
+
                 bot.send_message(id, "Твое расписание на сегодня:\n" + schedule)
                 menu(id)
         except Exception as e:
             ErrorLog(e)
+
     if call.data == "changeTrue":
+
         try:
             cursor.execute("delete from students where id=?", (id,))
             base.commit()
@@ -170,6 +181,7 @@ def buttons(call):
         except Exception as e:
             base.rollback()
             ErrorLog(e)
+
     elif call.data == "changeFalse":
         menu(id)
 
