@@ -60,6 +60,34 @@ def evenWeek():
         return (abs(365 + int(date.today().strftime("%j")) - int(date(2020, 9, 1).strftime("%j"))) // 7 + 1) % 2
 
 
+def set_notif_deadline(id):
+    base = sqlite3.connect('base.db')
+    cursor = base.cursor()
+
+    try:
+        notif_deadline = cursor.execute('select notif_deadline from students where id=?', (id,)).fetchall()
+        buttons = [
+            {'1': 'set_notif_deadline 1'},
+            {'2': 'set_notif_deadline 2'},
+            {'3': 'set_notif_deadline 3'},
+            {'4': 'set_notif_deadline 4'},
+            {'5': 'set_notif_deadline 5'},
+            {'6': 'set_notif_deadline 6'},
+            {'7': 'set_notif_deadline 7'}
+        ]
+        kb_menu = keyboa_maker(items=buttons)
+
+        if notif_deadline != 'NULL':
+            bot.send_message(id, f'Бот напомнит о сроках сдачи задания за {notif_deadline[0][0]} '
+                                 f'дней до крайнего срока.\nЕсли хотите изменить, то выберите новое значение',
+                             reply_markup=kb_menu)
+        else:
+            bot.send_message(id, 'Выберите, за сколько дней боту напоминать о приближении срока сдачи задания',
+                             reply_markup=kb_menu)
+    except Exception as e:
+        ErrorLog(e)
+
+
 @bot.message_handler(commands=["menu"])
 def menu(id):
     base = sqlite3.connect('base.db')
@@ -162,7 +190,7 @@ def shedule(id):
 
             for i, lesson in enumerate(lessons):
 
-                if lesson[0] != "":
+                if lesson[0] != "" and lesson[0] != 'NULL':
                     schedule += f"{i + 1} пара: {lesson[0]}\n"
 
             bot.send_message(id, "Твое расписание на сегодня:\n" + schedule)
@@ -191,6 +219,18 @@ def buttons(call):
 
     elif call.data == "changeFalse":
         menu(id)
+    elif call.data == 'notif_set':
+        set_notif_deadline(id)
+    elif call.datasplit()[0] == 'set_notif_deadline':
+
+        try:
+            notif_deadline = int(call.data.split()[1])
+            cursor.execute('update students set notif_deadline=? where id=?', (notif_deadline, id,))
+            base.commit()
+            bot.send_message(id, 'Время напоминания успешно сохранено!')
+        except Exception as e:
+            base.rollback()
+            ErrorLog(e)
 
 
 @bot.message_handler(content_types=['text'])
