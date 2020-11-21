@@ -330,7 +330,6 @@ def deadline_calendar(id):
                         buttons[i].append({str(day_count[i][j][0]) + smile_skull: f"DeadBtn{day_count[i][j][0]}"})
                 else:
                     buttons[i].append({str(day_count[i][j][0]): f"CalBtn{day_count[i][j][0]}"})
-    print(buttons)
     menu_button = [{"Вернуться в меню": "menu"}]
     kb_calendar = keyboa_maker(items=buttons)
     kb_menu = keyboa_maker(items=menu_button)
