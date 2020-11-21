@@ -146,7 +146,7 @@ def set_notif_deadline(id):
         ]
         kb_menu = keyboa_maker(items=buttons)
 
-        if notif_deadline != 'NULL':
+        if notif_deadline is not None:
             bot.send_message(id, f'Бот напомнит о сроках сдачи задания за {notif_deadline[0][0]} '
                                  f'дней до крайнего срока.\nЕсли хотите изменить, то выберите новое значение',
                              reply_markup=kb_menu)
@@ -168,8 +168,7 @@ def menu(message=None, id=None):
 
     try:
         buttons = [
-            [{"Мое расписание": "schedule"},
-            {"Мои задачи": "tasks"}],
+            {"Мое расписание": "schedule"},
             {"Настройки уведомлений о дедлайнах": "notif_set"},
             {"Календарь дедлайнов": "deadlines"}]
         kb_menu = keyboa_maker(items=buttons)
@@ -312,7 +311,7 @@ def buttons(call):
         menu(id=id)
     elif call.data == 'notif_set':
         set_notif_deadline(id)
-    elif call.datasplit()[0] == 'set_notif_deadline':
+    elif call.data.split()[0] == 'set_notif_deadline':
 
         try:
             notif_deadline = int(call.data.split()[1])
