@@ -60,6 +60,7 @@ def evenWeek():
         return (abs(365 + int(date.today().strftime("%j")) - int(date(2020, 9, 1).strftime("%j"))) // 7 + 1) % 2
 
 
+@bot.message_handler(commands=["menu"])
 def menu(id):
     base = sqlite3.connect('base.db')
     cursor = base.cursor()
