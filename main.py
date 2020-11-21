@@ -27,12 +27,11 @@ def ErrorLog(exc):
 
 @bot.message_handler(commands=["start"])
 def start(message):
-    global status_reg
     id = str(message.chat.id)
 
     if id != admin_id:
-        bot.send_message(id, 'Привет! Я бот-ассистент для студентов вузов, призванный для упрощения'
-        ' учебного процесса. Прежде чем начать, давай познакомимся. Напиши свою группу')
+        bot.send_message(id, 'Привет!\n Я бот-ассистент для студентов вузов, призванный для упрощения учебного '
+                             'процесса.\n Прежде чем начать, давай познакомимся! Напиши мне свою группу')
 
 
 def reg_student(id, name):
@@ -40,6 +39,8 @@ def reg_student(id, name):
     if id != admin_id:
         base = sqlite3.connect('base.db')
         cursor = base.cursor()
+        checkmark = u"\U00002705"
+        crossmark = u"\U0000274C"
 
         try:
             group_id = cursor.execute('select id from groups where name=?', (name,)).fetchall()
@@ -48,10 +49,10 @@ def reg_student(id, name):
                 group_id = group_id[0][0]
                 cursor.execute('insert into students values (?, ?, Null)', (id, group_id,))
                 base.commit()
-                bot.send_message(id, 'Регистрация прошла успешно')
+                bot.send_message(id, f'{checkmark} Регистрация прошла успешно!')
                 menu(id=id)
             else:
-                bot.send_message(id, 'Я не нашёл такую группу. Проверь, правильно ли ты написал')
+                bot.send_message(id, f'{crossmark} Я не нашёл такую группу. Проверь, правильно ли ты написал?')
 
         except Exception as e:
             ErrorLog(e)
@@ -80,13 +81,16 @@ def send_notifications(notif_deadline):
 
             for group in groups:
                 group = group[0]
-                students = cursor.execute('select id from students where group_id=? and notif_deadline=?', (group, notif_deadline,)).fetchall()
+                students = cursor.execute('select id from students where group_id=? and '
+                                          'notif_deadline=?', (group, notif_deadline,)).fetchall()
 
                 for student in students:
                     student = student[0]
                     task_name = cursor.execute('select task from tasks where task_id=?', (task,)).fetchall()[0][0]
-                    bot.send_message(student, f'{smile_fire}{smile_fire}{smile_fire} ВНИМАНИЕ!!! {smile_fire}{smile_fire}{smile_fire}\n\n'
-                                     f'Крайний срок сдачи задания "{task_name}" {deadline}.\nЕсли захочешь изменить настройки напоминания, открой их '
+                    bot.send_message(student, f'{smile_fire}{smile_fire}{smile_fire} ВНИМАНИЕ!!! '
+                                              f'{smile_fire}{smile_fire}{smile_fire}\n\n'
+                                     f'Крайний срок сдачи задания "{task_name}" {deadline}.'
+                                              f'\nЕсли захочешь изменить настройки напоминания, открой их '
                                      f'в /menu')
 
     except Exception as e:
@@ -104,7 +108,6 @@ def del_task():
     except Exception as e:
         base.rollback()
         ErrorLog(e)
-
 
 
 def synchronization():
@@ -140,22 +143,32 @@ def set_notif_deadline(id):
     try:
         notif_deadline = cursor.execute('select notif_deadline from students where id=?', (id,)).fetchall()[0][0]
         buttons = [
-            {'1': 'set_notif_deadline 1'},
-            {'2': 'set_notif_deadline 2'},
-            {'3': 'set_notif_deadline 3'},
-            {'4': 'set_notif_deadline 4'},
-            {'5': 'set_notif_deadline 5'},
-            {'6': 'set_notif_deadline 6'},
-            {'7': 'set_notif_deadline 7'}
+            [{'1 день': 'set_notif_deadline 1'},
+            {'2 дня': 'set_notif_deadline 2'},
+            {'3 дня': 'set_notif_deadline 3'}],
+            [{'4 дня': 'set_notif_deadline 4'},
+            {'5 дней': 'set_notif_deadline 5'}],
+            [{'6 дней': 'set_notif_deadline 6'},
+            {'7 дней': 'set_notif_deadline 7'}],
+            {'Вернуться в меню': 'menu'}
         ]
         kb_menu = keyboa_maker(items=buttons)
 
         if notif_deadline:
-            bot.send_message(id, f'Бот напомнит о сроках сдачи задания за {notif_deadline[0][0]} '
-                                 f'дней до крайнего срока.\nЕсли хотите изменить, то выберите новое значение',
-                             reply_markup=kb_menu)
+            if notif_deadline == 1:
+                bot.send_message(id, f'Бот напомнит о сроках сдачи задания за {notif_deadline} '
+                                     f'день до крайнего срока.\nЕсли хочешь изменить, то выбери новое значение',
+                                 reply_markup=kb_menu)
+            elif notif_deadline in [2, 3, 4]:
+                bot.send_message(id, f'Бот напомнит о сроках сдачи задания за {notif_deadline} '
+                                     f'дня до крайнего срока.\nЕсли хочешь изменить, то выбери новое значение',
+                                 reply_markup=kb_menu)
+            else:
+                bot.send_message(id, f'Бот напомнит о сроках сдачи задания за {notif_deadline} '
+                                     f'дней до крайнего срока.\nЕсли хочешь изменить, то выбери новое значение',
+                                 reply_markup=kb_menu)
         else:
-            bot.send_message(id, 'Выберите, за сколько дней боту напоминать о приближении срока сдачи задания',
+            bot.send_message(id, 'Выбери, за сколько дней боту напоминать о приближении срока сдачи задания?',
                              reply_markup=kb_menu)
     except Exception as e:
         ErrorLog(e)
@@ -169,16 +182,23 @@ def menu(message=None, id=None):
 
     base = sqlite3.connect('base.db')
     cursor = base.cursor()
+    right_triangle = u"\U000025B6"
+    left_triangle = u"\U000025C0"
+    schedule_smile = u"\U0001F4DA"
+    notif_set_smile = u"\U0001F514"
+    dd_cal_smile = u"\U0001F4C5"
 
     try:
         buttons = [
-            {"Мое расписание": "schedule"},
-            {"Настройки уведомлений о дедлайнах": "notif_set"},
-            {"Календарь дедлайнов": "deadlines"}]
+            {f"{schedule_smile} Мое расписание": "schedule"},
+            {f"{notif_set_smile} Настройки уведомлений о дедлайнах": "notif_set"},
+            {f"{dd_cal_smile} Календарь дедлайнов": "deadlines"}]
         kb_menu = keyboa_maker(items=buttons)
         group_id = cursor.execute("select group_id from students where id=?", (id,)).fetchall()[0][0]
         group_name = cursor.execute("select name from groups where id=?", (group_id,)).fetchall()[0][0]
-        bot.send_message(id, f"Ты принадлежишь к группе {group_name}\nВыбери один из пунктов меню",
+        bot.send_message(id, f"{right_triangle}{right_triangle}{right_triangle}ГЛАВНОЕ МЕНЮ"
+                             f"{left_triangle}{left_triangle}{left_triangle}\n"
+                             f"Ты принадлежишь к группе {group_name}\nВыбери один из пунктов меню",
                          reply_markup=kb_menu)
     except Exception as e:
         ErrorLog(e)
@@ -197,7 +217,7 @@ def update_shedule(message):
             group_id = cursor.execute('select id from groups where name=?', (group_name,)).fetchall()[0][0]
             bot.send_message(id, 'Ожидайте, расписание обновляется')
             getShedule(group_id, group_name)
-            bot.send_message(f'Расписание для группы {group_name} обновленно!')
+            bot.send_message(id, f'Расписание для группы {group_name} обновлено!')
         except Exception as e:
             bot.send_message(id, 'Такой группы не найдено или произошла ошибка')
             ErrorLog(e)
@@ -304,9 +324,10 @@ def shedule(id):
 
 
 def deadline_calendar(id):
+    flame_smile = u'\U0001F525'
+    smile_skull = u'\U0001F480'
     base = sqlite3.connect('base.db')
     cursor = base.cursor()
-    smile_skull = u'\U0001F480'
     year = date.today().strftime("%Y")
     month = date.today().strftime("%m")
     day_count = calendar.Calendar().monthdays2calendar(int(year), int(month))
@@ -336,11 +357,11 @@ def deadline_calendar(id):
     kb_calendar = keyboa_maker(items=buttons)
     kb_menu = keyboa_maker(items=menu_button)
     kb = keyboa_combiner(keyboards=(kb_calendar, kb_menu))
-    bot.send_message(chat_id=id, text="Календарь дедлайнов", reply_markup=kb)
-
-
-
-
+    bot.send_message(chat_id=id, text=f"{flame_smile}Это календарь дедлайнов{flame_smile}"
+                                      f"\n{smile_skull} Черепками отмечены дни, до которых надо сдать задачи."
+                                      f"\nНажав на число с черепком ты увидишь, какую именно задачу тебе надо "
+                                      f"сдать в этот день",
+                     reply_markup=kb)
 
 
 @bot.callback_query_handler(func=lambda x: True)
@@ -348,6 +369,8 @@ def buttons(call):
     id = str(call.from_user.id)
     base = sqlite3.connect('base.db')
     cursor = base.cursor()
+    clipboard_smile = u"\U0001F4CB"
+    checkmark = u"\U00002705"
 
     if call.data == "schedule":
         shedule(id)
@@ -356,7 +379,8 @@ def buttons(call):
         try:
             cursor.execute("delete from students where id=?", (id,))
             base.commit()
-            bot.send_message(id, "Я удалил тебя из базы данных. Теперь еще раз напиши свою группу, чтобы я смог тебя зарегистрировать")
+            bot.send_message(id, "Я удалил тебя из базы данных. Теперь еще раз напиши свою группу, "
+                                 "чтобы я смог тебя зарегистрировать")
         except Exception as e:
             base.rollback()
             ErrorLog(e)
@@ -371,7 +395,8 @@ def buttons(call):
             notif_deadline = int(call.data.split()[1])
             cursor.execute('update students set notif_deadline=? where id=?', (notif_deadline, id,))
             base.commit()
-            bot.send_message(id, 'Время напоминания успешно сохранено!')
+            bot.send_message(id, f'{checkmark} Время напоминания успешно сохранено!')
+            menu(id=id)
         except Exception as e:
             base.rollback()
             ErrorLog(e)
@@ -388,12 +413,14 @@ def buttons(call):
         tasks = []
         print(task_id)
         for i in task_id:
-            task = cursor.execute("select task from tasks where task_id=? and deadline=?", (int(i), deadline_date,)).fetchall()
+            task = cursor.execute("select task from tasks where task_id=? "
+                                  "and deadline=?", (int(i), deadline_date,)).fetchall()
             if task:
                 print(task, i)
                 tasks.append(task[0][0])
         tasks = '\n'.join(tasks)
-        bot.send_message(id, f"Ваши задачи на {call.data[7:]}.{datetime.today().strftime('%m.%Y')}:\n{tasks}")
+        bot.send_message(id, f"{clipboard_smile} Твои задачи на "
+                             f"{call.data[7:]}.{datetime.today().strftime('%m.%Y')}:\n{tasks}")
         deadline_calendar(id)
     elif call.data == "menu":
         menu(id=id)
