@@ -281,7 +281,9 @@ def shedule(id):
             for i, lesson in enumerate(lessons):
 
                 if lesson[0] != "" and lesson[0] != 'NULL':
-                    schedule += f"{i + 1} пара: {lesson[0]}\n"
+                    link = cursor.execute("select link from shedule where week_day=? and is_even=? and group_id=?",
+                                     (weekday, isEven, group_id,)).fetchall()[0][0]
+                    schedule += f"{i + 1} пара: {lesson[0]}\nСсылка на конференцию: {link}\n\n"
 
             bot.send_message(id, "Твое расписание на сегодня:\n" + schedule)
 
