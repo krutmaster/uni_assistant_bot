@@ -84,9 +84,9 @@ def send_notifications(notif_deadline):
                 for student in students:
                     student = student[0]
                     task_name = cursor.execute('select task from tasks where task_id=?', (task,)).fetchall()[0][0]
-                    bot.send_message(f'{smile_fire}{smile_fire}{smile_fire} ВНИМАНИЕ!!! {smile_fire}{smile_fire}{smile_fire}\n\n'
+                    bot.send_message(student, f'{smile_fire}{smile_fire}{smile_fire} ВНИМАНИЕ!!! {smile_fire}{smile_fire}{smile_fire}\n\n'
                                      f'Крайний срок сдачи задания "{task_name}" {deadline}.\nЕсли захочешь изменить настройки напоминания, открой их '
-                                     f'в /menu"')
+                                     f'в /menu')
 
     except Exception as e:
         ErrorLog(e)
@@ -113,11 +113,13 @@ def synchronization():
         while True:
             hours = datetime.now().hour
 
-            if hours == 10:
+            if hours == 20:
                 del_task()
 
                 for i in range(7):
                     send_notifications(7 - i)
+
+                sleep(86400)
 
             elif hours > 10:
                 minutes = datetime.now().minute
