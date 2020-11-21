@@ -184,12 +184,15 @@ def menu(message=None, id=None):
 @bot.message_handler(commands=["update_shedule"])
 def update_shedule(message):
     id = str(message.chat.id)
+    base = sqlite3.connect('base.db')
+    cursor = base.cursor()
 
     if id == admin_id:
 
         try:
             group_name = message.text.split()[1].upper()
-            group_id = cursor.execute('select group_id from groups where name=?', (group_name,)).fetchall()[0][0]
+            group_id = cursor.execute('select id from groups where name=?', (group_name,)).fetchall()[0][0]
+            bot.send_message(id, 'Ожидайте, расписание обновляется')
             getShedule(group_id, group_name)
             bot.send_message(f'Расписание для группы {group_name} обновленно!')
         except Exception as e:

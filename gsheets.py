@@ -30,7 +30,7 @@ def getShedule(group_id, name_group):
         for j, cell in enumerate(cells):
 
             if j % 2 == 0:
-                row = int(str(cell.address).split(col_chars[i])[1].split('>')[0])
+                #row = int(str(cell.address).split(col_chars[i])[1].split('>')[0])
 
                 if j == 2 or j == 4:
                     lesson = 1
