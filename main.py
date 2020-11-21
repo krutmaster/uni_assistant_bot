@@ -117,7 +117,7 @@ def update_shedule(message):
             group_name = message.text.split()[1].upper()
             group_id = cursor.execute('select group_id from groups where name=?', (group_name,)).fetchall()[0][0]
             getShedule(group_id, group_name)
-            bot.send_message(f'Расписание для групып {group_name} обновленно!')
+            bot.send_message(f'Расписание для группы {group_name} обновленно!')
         except Exception as e:
             bot.send_message(id, 'Такой группы не найдено или произошла ошибка')
             ErrorLog(e)
@@ -170,6 +170,20 @@ def change_group(message):
         buttons = [[{"Да": "changeTrue"}, {"Нет": "changeFalse"}]]
         kb_menu = keyboa_maker(items=buttons)
         bot.send_message(chat_id=id, reply_markup=kb_menu, text="Ты уверен, что хочешь изменить группу?")
+
+
+@bot.message_handler(commands=["add_task"])
+def add_task(message):
+    global admin_id
+    base = sqlite3.connect('base.db')
+    cursor = base.cursor()
+    id = str(message.chat.id)
+    if id == admin_id:
+        task_text = " ".join(message.text().split()[1:])
+        cursor.execute("insert into tasks task values ?", (task_text,))
+        base.commit()
+        task_id = cursor.execute("select task_id from tasks where task=?", (task_text,)).fetchall()[0][0]
+        bot.send_message(f"Вы добавляете новое задание: \"{task_text}\"\nТеперь перечислите группы, которым необходимо выполнить задание в формате \n\"{task_id} группа 1, группа 2,...\"")
 
 
 def shedule(id):
@@ -242,6 +256,32 @@ def text(message):
     if not cursor.execute('select group_id from students where id=?', (id,)).fetchall():
         group_name = message.text.upper()
         reg_student(id, group_name)
+    elif not cursor.execute("select task_id from task_group where task_id=?", (message.text()[0],)).fetchall():
+        task_id = message.text()[0]
+        groups = message.text()[2:].upper().split(",")
+        added_groups = []
+        for i in range(len(groups)):
+            groups[i] = "".join(groups[i].split())
+        for i in range(len(groups)):
+            try:
+                if cursor.execute("select id from groups where name=?", (groups[i],)).fetchall():
+                    group_id = cursor.execute("select id from groups where name=?", (groups[i],))[0][0]
+                    cursor.execute("insert into task_group values (?, ?)", (task_id, group_id,))
+                    base.commit()
+                    added_groups.append(groups[i])
+            except Exception as e:
+                base.rollback()
+                ErrorLog(e)
+        bot.send_message("К заданию были добавлены группы: {}\nТеперь введите крайний срок сдачи задания в фомате \"{} ГГГГ-ММ-ДД\"".format("\n".join(added_groups), task_id))
+    elif not cursor.execute("select deadline from tasks where task_id=?", (message.text()[0],)).fetchall():
+        try:
+            cursor.execute("update tasks set deadline=?", (message.text())[1:])
+            base.commit()
+        except Exception as e:
+            base.rollback()
+            ErrorLog(e)
+
+
 
 
 if __name__ == '__main__':
