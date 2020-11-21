@@ -50,6 +50,7 @@ def reg_student(id, name):
                 menu(id)
             else:
                 bot.send_message(id, 'Я не нашёл такую группу. Проверь, правильно ли ты написал')
+
         except Exception as e:
             ErrorLog(e)
 
@@ -157,7 +158,11 @@ def set_notif_deadline(id):
 
 
 @bot.message_handler(commands=["menu"])
-def menu(id):
+def menu(message=None, id=None):
+
+    if not id:
+        id = str(message.chat.id)
+
     base = sqlite3.connect('base.db')
     cursor = base.cursor()
 
@@ -170,7 +175,8 @@ def menu(id):
         kb_menu = keyboa_maker(items=buttons)
         group_id = cursor.execute("select group_id from students where id=?", (id,)).fetchall()[0][0]
         group_name = cursor.execute("select name from groups where id=?", (group_id,)).fetchall()[0][0]
-        bot.send_message(chat_id=id, reply_markup=kb_menu, text=f"Ты принадлежишь к группе {group_name}\nВыбери один из пунктов меню")
+        bot.send_message(id, f"Ты принадлежишь к группе {group_name}\nВыбери один из пунктов меню",
+                         reply_markup=kb_menu)
     except Exception as e:
         ErrorLog(e)
 
@@ -246,12 +252,14 @@ def add_task(message):
     base = sqlite3.connect('base.db')
     cursor = base.cursor()
     id = str(message.chat.id)
+
     if id == admin_id:
         task_text = " ".join(message.text.split()[1:])
         cursor.execute("insert into tasks (task) values (?)", (task_text,))
         base.commit()
-        task_id = cursor.execute("select task_id from tasks where task=?", (task_text,)).fetchall()[0][0]
-        bot.send_message(id, f"Вы добавляете новое задание: \"{task_text}\"\nТеперь перечислите группы, которым необходимо выполнить задание в формате \n\"{task_id} группа 1, группа 2,...\"")
+        task_id = cursor.execute("select max(task_id) from tasks").fetchall()[0][0]
+        bot.send_message(id, f"Вы добавляете новое задание: \"{task_text}\"\nТеперь перечислите группы, которым "
+                             f"необходимо выполнить задание, в формате \n\"{task_id} ГРУППА1, ГРУППА2,...\"")
 
 
 def shedule(id):
@@ -276,7 +284,8 @@ def shedule(id):
                     schedule += f"{i + 1} пара: {lesson[0]}\n"
 
             bot.send_message(id, "Твое расписание на сегодня:\n" + schedule)
-            menu(id)
+
+        menu(id=id)
     except Exception as e:
         ErrorLog(e)
 
@@ -300,7 +309,7 @@ def buttons(call):
             ErrorLog(e)
 
     elif call.data == "changeFalse":
-        menu(id)
+        menu(id=id)
     elif call.data == 'notif_set':
         set_notif_deadline(id)
     elif call.datasplit()[0] == 'set_notif_deadline':
@@ -320,41 +329,49 @@ def text(message):
     id = str(message.chat.id)
     base = sqlite3.connect('base.db')
     cursor = base.cursor()
-    task_id = int(message.text.split()[0])
-    print(task_id)
-    if not cursor.execute('select group_id from students where id=?', (id,)).fetchall():
-        group_name = message.text.upper()
-        reg_student(id, group_name)
 
-    if not cursor.execute("select task_id from task_group where task_id=?", (task_id,)).fetchall():
-        # task_id = message.text.split()[0]
-        groups = "".join(message.text.upper().split()[1:]).split(",")
-        added_groups = []
-        for i in range(len(groups)):
-            groups[i] = "".join(groups[i].split())
-        for i in range(len(groups)):
+    if id == admin_id:
+        task_id = message.text.split()[0]
+
+        if not cursor.execute("select task_id from task_group where task_id=?", (task_id,)).fetchall():
+            groups = "".join(message.text.upper().split()[1:]).split(",")
+            added_groups = []
+
             try:
-                if cursor.execute("select id from groups where name=?", (groups[i],)).fetchall():
-                    group_id = cursor.execute("select id from groups where name=?", (groups[i],)).fetchall()
-                    cursor.execute("insert into task_group values (?, ?)", (task_id, group_id[0][0],))
-                    base.commit()
-                    added_groups.append(groups[i])
+
+                for group in groups:
+                        group_id = cursor.execute("select id from groups where name=?", (group,)).fetchall()
+
+                        if group_id:
+                            group_id = group_id[0][0]
+                            cursor.execute("insert into task_group values (?, ?)", (task_id, group_id,))
+                            added_groups.append(group)
+                        else:
+                            bot.send_message(id, f'Группа {group} не найдена среди добавленных и пропущена для'
+                                                 f' задания')
+
+                base.commit()
+                bot.send_message(id, "К заданию были добавлены группы:\n{}\nТеперь введите крайний срок сдачи задания"
+                                     " в фомате\n\"{} ГГГГ-ММ-ДД\"".format("\n".join(added_groups), task_id))
             except Exception as e:
                 base.rollback()
                 ErrorLog(e)
-        bot.send_message(id, "К заданию были добавлены группы:\n{}\nТеперь введите крайний срок сдачи задания в фомате \n\"{} ГГГГ-ММ-ДД\"".format("\n".join(added_groups), task_id))
-    if cursor.execute("select deadline from tasks where task_id=?", (task_id,)).fetchall()[0][0] is None:
-        try:
-            deadline_date = message.text.split()[1:]
-            task_id = message.text.split()[0]
-            cursor.execute("update tasks set deadline=? where task_id=?", (deadline_date, task_id,))
-            base.commit()
-            bot.send_message(id, "Задача успешно добавлена!")
-        except Exception as e:
-            base.rollback()
-            ErrorLog(e)
 
+        else:
 
+            try:
+                task_id = message.text.split()[0]
+                deadline = message.text.split()[1]
+                cursor.execute("update tasks set deadline=? where task_id=?", (deadline, task_id,))
+                base.commit()
+                bot.send_message(id, "Задача успешно добавлена!")
+            except Exception as e:
+                base.rollback()
+                ErrorLog(e)
+
+    elif not cursor.execute('select group_id from students where id=?', (id,)).fetchall():
+        group_name = message.text.upper()
+        reg_student(id, group_name)
 
 
 if __name__ == '__main__':
