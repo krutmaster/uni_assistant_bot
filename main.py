@@ -334,25 +334,35 @@ def deadline_calendar(id):
     group_id = cursor.execute("select group_id from students where id=?", (id,)).fetchall()[0][0]
     tasks_id = cursor.execute("select task_id from task_group where group_id=?", (group_id,)).fetchall()
     dd_dates = []
+
     for i in tasks_id:
         db_date = cursor.execute("select deadline from tasks where task_id=?", (i[0],)).fetchall()[0][0]
+
         if db_date[5:] not in dd_dates:
             dd_dates.append(db_date[5:])
+
     buttons = []
+
     for i in range(len(day_count)):
         buttons.append([])
+
         for j in range(len(day_count[i])):
+
             if day_count[i][j][0] == 0:
                 buttons[i].append({" ": "EmptyBtn"})
             else:
                 tempdate = f"{month}-{day_count[i][j][0]}"
+
                 if tempdate in dd_dates:
+
                     if len(str(day_count[i][j][0])) == 1:
                         buttons[i].append({str(day_count[i][j][0]) + smile_skull: f"DeadBtn0{day_count[i][j][0]}"})
                     else:
                         buttons[i].append({str(day_count[i][j][0]) + smile_skull: f"DeadBtn{day_count[i][j][0]}"})
+
                 else:
                     buttons[i].append({str(day_count[i][j][0]): f"CalBtn{day_count[i][j][0]}"})
+
     menu_button = [{"Вернуться в меню": "menu"}]
     kb_calendar = keyboa_maker(items=buttons)
     kb_menu = keyboa_maker(items=menu_button)
@@ -360,8 +370,7 @@ def deadline_calendar(id):
     bot.send_message(chat_id=id, text=f"{flame_smile}Это календарь дедлайнов{flame_smile}"
                                       f"\n{smile_skull} Черепками отмечены дни, до которых надо сдать задачи."
                                       f"\nНажав на число с черепком ты увидишь, какую именно задачу тебе надо "
-                                      f"сдать в этот день",
-                     reply_markup=kb)
+                                      f"сдать в этот день", reply_markup=kb)
 
 
 @bot.callback_query_handler(func=lambda x: True)
@@ -401,6 +410,7 @@ def buttons(call):
         except Exception as e:
             base.rollback()
             ErrorLog(e)
+
     elif call.data == "deadlines":
         deadline_calendar(id)
     elif call.data.startswith("CalBtn"):
@@ -412,13 +422,15 @@ def buttons(call):
         task_id = [task_id[x][0] for x in range(len(task_id))]
         deadline_date = f'{datetime.today().strftime("%Y-%m")}-{call.data[7:]}'
         tasks = []
-        print(task_id)
+
         for i in task_id:
             task = cursor.execute("select task from tasks where task_id=? "
                                   "and deadline=?", (int(i), deadline_date,)).fetchall()
+
             if task:
                 print(task, i)
                 tasks.append("• " + task[0][0])
+
         tasks = '\n'.join(tasks)
         bot.send_message(id, f"{clipboard_smile} Твои задачи на "
                              f"{call.data[7:]}.{datetime.today().strftime('%m.%Y')}:\n{tasks}")
