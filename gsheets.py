@@ -44,34 +44,34 @@ def getShedule(group_id, name_group):
             if j % 2 == 0:
                 #row = int(str(cell.address).split(col_chars[i])[1].split('>')[0])
 
-                if j == 2 or j == 4:
+                if j == 0 or j == 2:
                     lesson = 1
 
-                    if j == 2:
+                    if j == 0:
                         is_even = 1
                     else:
                         is_even = 0
 
-                elif j == 6 or j == 8:
+                elif j == 4 or j == 6:
                     lesson = 2
 
-                    if j == 6:
+                    if j == 4:
                         is_even = 1
                     else:
                         is_even = 0
 
-                elif j == 10 or j == 12:
+                elif j == 8 or j == 10:
                     lesson = 3
 
-                    if j == 10:
+                    if j == 8:
                         is_even = 1
                     else:
                         is_even = 0
 
-                elif j == 14 or j == 16:
+                elif j == 12 or j == 14:
                     lesson = 4
 
-                    if j == 14:
+                    if j == 12:
                         is_even = 1
                     else:
                         is_even = 0
@@ -79,7 +79,7 @@ def getShedule(group_id, name_group):
                 else:
                     lesson = 5
 
-                    if j == 18:
+                    if j == 16:
                         is_even = 1
                     else:
                         is_even = 0
