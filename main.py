@@ -117,7 +117,7 @@ def synchronization():
         while True:
             hours = datetime.now().hour
 
-            if hours == 20:
+            if hours == 10:
                 del_task()
 
                 for i in range(7):
@@ -313,7 +313,7 @@ def shedule(id):
 
                 if lesson[0] != "" and lesson[0] != 'NULL':
                     link = cursor.execute("select link from shedule where week_day=? and is_even=? and group_id=?",
-                                     (weekday, isEven, group_id,)).fetchall()[0][0]
+                                     (weekday, isEven, group_id,)).fetchall()[0]
                     schedule += f"{i + 1} пара: {lesson[0]}\nСсылка на конференцию: {link}\n\n"
 
             bot.send_message(id, "Твое расписание на сегодня:\n" + schedule)

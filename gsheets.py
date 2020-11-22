@@ -95,7 +95,7 @@ def getShedule(group_id, name_group):
 
 def createSheet(group_name):
     wks = sh.add_worksheet(f'shedule_{group_name}', rows=21, cols=7)
-    wks.update_values('A1:G1', [['Пара', 'Понедельник', 'Вторник', 'Четверг', 'Пятница', 'Суббота']])
+    wks.update_values('A1:G1', [['Пара', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']])
 
     for row in range(2, 22):
 
