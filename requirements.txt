@@ -1,4 +1,3 @@
-telebot
 pytelegrambotapi==2.2.3
 pygsheets
 keyboa
